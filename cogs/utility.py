@@ -11,15 +11,15 @@ from itertools import takewhile, zip_longest
 from json import JSONDecodeError, loads
 from subprocess import PIPE
 from textwrap import indent
-from types import SimpleNamespace
 from typing import Union
 
 import discord
-from aiohttp import ClientResponseError
 from discord.enums import ActivityType, Status
 from discord.ext import commands, tasks
 from discord.ext.commands.view import StringView
-from pkg_resources import parse_version
+
+from aiohttp import ClientResponseError
+from packaging.version import Version
 
 from core import checks, utils
 from core.changelog import Changelog
@@ -30,7 +30,7 @@ from core.models import (
     UnseenFormatter,
     getLogger,
 )
-from core.utils import trigger_typing, truncate
+from core.utils import trigger_typing, truncate, DummyParam
 from core.paginator import EmbedPaginatorSession, MessagePaginatorSession
 
 
@@ -342,9 +342,9 @@ class Utility(commands.Cog):
         latest = changelog.latest_version
 
         if self.bot.version.is_prerelease:
-            stable = next(filter(lambda v: not parse_version(v.version).is_prerelease, changelog.versions))
+            stable = next(filter(lambda v: not Version(v.version).is_prerelease, changelog.versions))
             footer = f"You are on the prerelease version • the latest version is v{stable.version}."
-        elif self.bot.version < parse_version(latest.version):
+        elif self.bot.version < Version(latest.version):
             footer = f"A newer version is available v{latest.version}."
         else:
             footer = "You are up to date with the latest version."
@@ -352,7 +352,7 @@ class Utility(commands.Cog):
         embed.add_field(
             name="Want Modmail in Your Server?",
             value="Follow the installation guide on [GitHub](https://github.com/modmail-dev/modmail/) "
-            "and join our [Discord server](https://discord.gg/F34cRU8)!",
+            "and join our [Discord server](https://discord.gg/cnUpwrnpYb)!",
             inline=False,
         )
 
@@ -522,12 +522,12 @@ class Utility(commands.Cog):
             return await ctx.send(embed=embed)
 
         if not message:
-            raise commands.MissingRequiredArgument(SimpleNamespace(name="message"))
+            raise commands.MissingRequiredArgument(DummyParam("message"))
 
         try:
             activity_type = ActivityType[activity_type]
         except KeyError:
-            raise commands.MissingRequiredArgument(SimpleNamespace(name="activity"))
+            raise commands.MissingRequiredArgument(DummyParam("activity"))
 
         activity, _ = await self.set_presence(activity_type=activity_type, activity_message=message)
 
@@ -572,7 +572,7 @@ class Utility(commands.Cog):
         try:
             status = Status[status_type]
         except KeyError:
-            raise commands.MissingRequiredArgument(SimpleNamespace(name="status"))
+            raise commands.MissingRequiredArgument(DummyParam("status"))
 
         _, status = await self.set_presence(status=status)
 
@@ -1931,7 +1931,7 @@ class Utility(commands.Cog):
             "(https://github.com/modmail-dev/modmail/blob/master/bot.py#L1)"
         )
 
-        if self.bot.version >= parse_version(latest.version) and flag.lower() != "force":
+        if self.bot.version >= Version(latest.version) and flag.lower() != "force":
             embed = discord.Embed(title="Already up to date", description=desc, color=self.bot.main_color)
 
             data = await self.bot.api.get_user_info()
